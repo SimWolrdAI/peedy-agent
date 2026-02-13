@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Peedy - Character Editor</title>
+
+<script src="./node_modules/jquery/dist/jquery.min.js"></script>
+<script src="./node_modules/clippyjs/dist/clippy.js"></script>
+
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: Tahoma, Arial, sans-serif;
+    background: #efeee5;
+    min-height: 100vh;
+    color: #111;
+  }
+
+  .xp-window {
+    width: 100vw;
+    height: 100vh;
+    background: #ece9d8;
+    border: 1px solid #0831d9;
+    border-radius: 0;
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .xp-titlebar {
+    height: 30px;
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(180deg, #5ca5ea 0%, #3d8ad9 20%, #2e73c6 55%, #245fba 100%);
+    border-bottom: 1px solid #1f4f9d;
+    color: #fff;
+    font-weight: bold;
+    font-size: 12px;
+    text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.45);
+  }
+
+  .xp-title-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .xp-title-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #7ed74d;
+    border: 1px solid #2d6f19;
+  }
+
+  .xp-buttons {
+    display: flex;
+    gap: 3px;
+  }
+
+  .xp-btn {
+    width: 21px;
+    height: 21px;
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    border-radius: 3px;
+    background: linear-gradient(180deg, #5ea8ea 0%, #4b93df 35%, #2f74c6 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: #fff;
+    font-weight: bold;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .xp-menubar {
+    height: 25px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 0 10px;
+    border-bottom: 1px solid #b0b0a8;
+    background: #ece9d8;
+    font-size: 12px;
+    position: relative;
+  }
+
+  .menu-btn {
+    border: 1px solid transparent;
+    background: transparent;
+    font: inherit;
+    font-size: 12px;
+    padding: 1px 6px;
+    cursor: pointer;
+  }
+
+  .menu-btn:hover, .menu-btn.active {
+    border-color: #7f9db9;
+    background: #dce7f9;
+  }
+
+  .menu-popup {
+    position: absolute;
+    top: 24px;
+    left: 4px;
+    min-width: 170px;
+    background: #f2f0e4;
+    border: 1px solid #7f9db9;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
+    z-index: 30;
+    display: none;
+    padding: 3px;
+  }
+
+  .menu-popup.visible {
+    display: block;
+  }
+
+  .menu-item {
+    width: 100%;
+    text-align: left;
+    border: 1px solid transparent;
+    background: transparent;
+    padding: 3px 8px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .menu-item:hover {
+    border-color: #7f9db9;
+    background: #dce7f9;
+  }
+
+  .menu-sep {
+    border-top: 1px solid #b8b8ae;
+    margin: 3px 2px;
+  }
+
+  .content {
+    flex: 1;
+    display: flex;
+    padding: 8px 9px 8px 9px;
+    gap: 10px;
+    overflow: hidden;
+  }
+
+  .sidebar {
+    width: 182px;
+    border: 1px solid #7f9db9;
+    background: #f3f3f3;
+    overflow-y: auto;
+    padding: 6px 4px;
+    font-size: 12px;
+  }
+
+  .tree-root {
+    background: #3b6fc1;
+    color: #fff;
+    padding: 3px 6px;
+    margin-bottom: 6px;
+    border-radius: 2px;
+    font-weight: bold;
+  }
+
+  .tree-header {
+    font-weight: bold;
+    margin: 8px 0 4px 4px;
+    color: #222;
+    font-size: 12px;
+  }
+
+  .tree-item {
+    position: relative;
+    padding: 2px 6px 2px 20px;
+    margin: 1px 0;
+    border-radius: 2px;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  #animationTree .tree-item::before {
+    content: "";
+    position: absolute;
+    left: 6px;
+    top: 6px;
+    width: 10px;
+    height: 7px;
+    border: 1px solid #7d6716;
+    background: linear-gradient(180deg, #f2d77c 0%, #dfbd52 100%);
+  }
+
+  .tree-item:hover {
+    background: #dce7f9;
+  }
+
+  .tree-item.selected {
+    background: #316ac5;
+    color: #fff;
+  }
+
+  .state-item {
+    padding-left: 18px;
+  }
+
+  .state-item::before {
+    content: "";
+    position: absolute;
+    left: 6px;
+    top: 6px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #a8a8a8;
+    border: 1px solid #7a7a7a;
+  }
+
+  .state-item.active {
+    background: #316ac5;
+    color: #fff;
+    font-weight: bold;
+  }
+
+  .state-item.active::before {
+    background: #7ed74d;
+    border-color: #2d6f19;
+  }
+
+  .main-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 3px;
+    margin-bottom: 7px;
+    border-bottom: 1px solid #a7a7a2;
+  }
+
+  .tab {
+    border: 1px solid #a1a1a1;
+    border-bottom: none;
+    padding: 4px 16px;
+    background: #ece9d8;
+    border-radius: 4px 4px 0 0;
+    font-size: 12px;
+    margin-bottom: -1px;
+    cursor: pointer;
+  }
+
+  .tab.active {
+    background: #ece9d8;
+    font-weight: bold;
+    border-bottom: 1px solid #ece9d8;
+  }
+
+  .tab-pane {
+    display: none;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .tab-pane.active {
+    display: flex;
+  }
+
+  .preview-layout {
+    display: flex;
+    gap: 10px;
+    height: 58vh;
+    min-height: 360px;
+    max-height: 640px;
+  }
+
+  .preview {
+    position: relative;
+    flex: 1;
+    border: 1px solid #7f9db9;
+    background: #6cab3f url("./background.png") center center / cover no-repeat;
+    overflow: hidden;
+  }
+
+  .chat-panel {
+    width: 320px;
+    min-width: 280px;
+    background: #ece9d8;
+    border: 1px solid #7f9db9;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .chat-commands {
+    border-bottom: 1px solid #a9a9a9;
+    padding: 6px;
+    background: #e7e5d6;
+    font-size: 11px;
+  }
+
+  .chat-commands-title {
+    font-weight: bold;
+    margin-bottom: 4px;
+  }
+
+  .voice-toggle {
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+  }
+
+  .chat-cmd-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .chat-cmd-btn {
+    border: 1px solid #7f9db9;
+    background: linear-gradient(180deg, #ffffff 0%, #ecebdd 100%);
+    padding: 2px 6px;
+    font-size: 11px;
+    font-family: Tahoma, Arial, sans-serif;
+    cursor: pointer;
+  }
+
+  .chat-log {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+
+  .chat-msg {
+    margin-bottom: 7px;
+    padding: 4px 6px;
+    border: 1px solid #b8b8b8;
+    background: #fff;
+    word-wrap: break-word;
+  }
+
+  .chat-msg.user {
+    border-color: #8db0df;
+    background: #eef5ff;
+  }
+
+  .chat-msg.peedy {
+    border-color: #b9c89a;
+    background: #f4fce8;
+  }
+
+  .chat-input-wrap {
+    border-top: 1px solid #a9a9a9;
+    padding: 6px;
+    display: flex;
+    gap: 6px;
+    background: #ece9d8;
+  }
+
+  .chat-input {
+    flex: 1;
+    height: 22px;
+    border: 1px solid #7f9db9;
+    padding: 0 6px;
+    font-size: 12px;
+    font-family: Tahoma, Arial, sans-serif;
+  }
+
+  .chat-send {
+    min-width: 56px;
+    height: 22px;
+    border: 1px solid #7f9db9;
+    background: linear-gradient(180deg, #ffffff 0%, #e7e7da 100%);
+    font-size: 12px;
+    font-family: Tahoma, Arial, sans-serif;
+    cursor: pointer;
+  }
+
+  #previewPeedyContainer {
+    position: absolute;
+    left: 50%;
+    bottom: 10px;
+    width: 420px;
+    height: 420px;
+    transform: translateX(-50%);
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  #previewPeedyContainer .clippy {
+    position: absolute !important;
+    left: 50% !important;
+    bottom: 0 !important;
+    transform: translateX(-50%) scale(1.95) !important;
+    transform-origin: bottom center !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: none !important;
+  }
+
+  #previewPeedyContainer canvas {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  .agent-bubble {
+    position: absolute;
+    left: 50%;
+    bottom: 255px;
+    transform: translateX(-50%);
+    max-width: min(78%, 520px);
+    min-width: 180px;
+    padding: 8px 10px;
+    border: 2px solid #4a4a4a;
+    border-radius: 10px;
+    background: #ffffef;
+    color: #111;
+    font-size: 14px;
+    line-height: 1.25;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
+    z-index: 8;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 120ms ease-in-out;
+  }
+
+  .agent-bubble.visible {
+    opacity: 1;
+  }
+
+  .agent-bubble::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -14px;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 11px solid transparent;
+    border-right: 11px solid transparent;
+    border-top: 14px solid #4a4a4a;
+  }
+
+  .agent-bubble::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -11px;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 9px solid transparent;
+    border-right: 9px solid transparent;
+    border-top: 12px solid #ffffef;
+    z-index: 1;
+  }
+
+  .info {
+    margin-top: 10px;
+    border: 1px solid #a1a1a1;
+    padding: 12px 10px 8px;
+    font-size: 12px;
+    position: relative;
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 5px 0;
+  }
+
+  .row label {
+    width: 96px;
+    font-size: 12px;
+  }
+
+  .row input, .row select {
+    flex: 1;
+    height: 22px;
+    border: 1px solid #7f9db9;
+    background: #fff;
+    padding: 0 6px;
+    font-family: Tahoma, Arial, sans-serif;
+    font-size: 12px;
+  }
+
+  .row-actions {
+    display: flex;
+    gap: 6px;
+    margin-left: 104px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+  }
+
+  .mini-btn {
+    border: 1px solid #7f9db9;
+    background: linear-gradient(180deg, #ffffff 0%, #e7e7da 100%);
+    padding: 2px 8px;
+    font-size: 12px;
+    font-family: Tahoma, Arial, sans-serif;
+    cursor: pointer;
+  }
+
+  .statusbar {
+    height: 21px;
+    border-top: 1px solid #a1a1a1;
+    padding: 2px 8px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    background: #ece9d8;
+  }
+
+  .groupbox-title {
+    position: absolute;
+    top: -8px;
+    left: 10px;
+    padding: 0 4px;
+    background: #ece9d8;
+    font-size: 12px;
+    font-weight: bold;
+  }
+
+  .actions-box {
+    margin-top: 10px;
+    border: 1px solid #a1a1a1;
+    padding: 12px 10px 10px;
+    position: relative;
+    background: #ece9d8;
+  }
+
+  .actions-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .action-btn {
+    border: 1px solid #7f9db9;
+    background: linear-gradient(180deg, #ffffff 0%, #e7e7da 100%);
+    padding: 4px 8px;
+    font-size: 12px;
+    font-family: Tahoma, Arial, sans-serif;
+    cursor: pointer;
+  }
+
+  .preview-tools {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    align-items: center;
+  }
+
+  .slider {
+    width: 220px;
+  }
+</style>
+</head>
+<body>
+
+<div class="xp-window">
+  <div class="xp-titlebar">
+    <div class="xp-title-left">
+      <div class="xp-title-dot"></div>
+      <span>Peedy - Microsoft Agent Character Editor</span>
+    </div>
+    <div class="xp-buttons">
+      <div class="xp-btn" id="btnMinimize">_</div>
+      <div class="xp-btn" id="btnMaximize">□</div>
+      <div class="xp-btn" id="btnClose" style="background: linear-gradient(180deg,#e37d7d 0%, #c24f4f 35%, #aa3232 100%);">×</div>
+    </div>
+  </div>
+
+  <div class="xp-menubar">
+    <button class="menu-btn" data-menu="file">File</button>
+    <button class="menu-btn" data-menu="edit">Edit</button>
+    <button class="menu-btn" data-menu="help">Help</button>
+    <div class="menu-popup" id="menuPopup"></div>
+  </div>
+
+  <div class="content">
+    <div class="sidebar">
+      <div class="tree-root">Peedy</div>
+      <div class="tree-header">Animations</div>
+      <div id="animationTree"></div>
+      <div class="tree-header">States</div>
+      <div class="tree-item state-item" id="stateListening">Listening</div>
+      <div class="tree-item state-item" id="stateSpeaking">Speaking</div>
+      <div class="tree-item state-item active" id="stateResting">Resting</div>
+    </div>
+
+    <div class="main-panel">
+      <div class="tabs">
+        <div class="tab active" data-tab="properties">Properties</div>
+        <div class="tab" data-tab="balloon">Word Balloon</div>
+        <div class="tab" data-tab="preview">Preview</div>
+      </div>
+
+      <div class="tab-pane active" id="tab-properties">
+        <div class="preview-layout">
+          <div class="preview">
+            <div class="agent-bubble" id="agentBubble"></div>
+            <div id="previewPeedyContainer"></div>
+          </div>
+          <div class="chat-panel">
+            <div class="chat-commands">
+              <div class="chat-commands-title">Allowed commands:</div>
+              <div class="chat-cmd-list" id="chatCmdList"></div>
+            </div>
+            <div class="chat-log" id="chatLog"></div>
+            <div class="chat-input-wrap">
+              <input id="chatInput" class="chat-input" type="text" placeholder="Type to Peedy..." />
+              <button id="chatSendBtn" class="chat-send" type="button">Send</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="info">
+          <div class="groupbox-title">General Information</div>
+          <div class="row">
+            <label>Name:</label>
+            <input value="Peedy" readonly>
+          </div>
+          <div class="row">
+            <label>Language:</label>
+            <select><option>English</option></select>
+          </div>
+          <div class="row">
+            <label>Version:</label>
+            <input value="2.0" readonly>
+          </div>
+          <div class="row">
+            <label>Animations:</label>
+            <input id="animCount" value="..." readonly>
+          </div>
+        <div class="row">
+          <label>X:</label>
+          <input id="xUrlField" value="https://x.com/Peedy_Software" readonly>
+        </div>
+        <div class="row">
+          <label>CA:</label>
+          <input id="caField" value="JDbLXJuHukDp1FmbTLchAywGndYfE1P7ERm1QkMxpump" readonly>
+        </div>
+        <div class="row-actions">
+          <button class="mini-btn" id="btnOpenX">Open X</button>
+          <button class="mini-btn" id="btnCopyX">Copy X</button>
+          <button class="mini-btn" id="btnCopyCA">Copy CA</button>
+        </div>
+        </div>
+      </div>
+
+      <div class="tab-pane" id="tab-balloon">
+        <div class="actions-box">
+          <div class="groupbox-title">Balloon Actions</div>
+          <div class="actions-grid">
+            <button class="action-btn" id="btnBalloonHello">Say Hello</button>
+            <button class="action-btn" id="btnBalloonTip">Show Tip</button>
+            <button class="action-btn" id="btnBalloonHide">Hide Balloon</button>
+          </div>
+          <div class="preview-tools">
+            <label for="voiceToggleManual">Voice</label>
+            <input id="voiceToggleManual" type="checkbox" checked>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane" id="tab-preview">
+        <div class="actions-box">
+          <div class="groupbox-title">Quick Actions</div>
+          <div class="actions-grid">
+            <button class="action-btn" id="btnRandomAnim">Random animation</button>
+            <button class="action-btn" id="btnGreet">Greet</button>
+            <button class="action-btn" id="btnThink">Think</button>
+            <button class="action-btn" id="btnIdle">Idle</button>
+          </div>
+          <div class="preview-tools">
+            <label for="sizeSlider">Peedy size</label>
+            <input class="slider" id="sizeSlider" type="range" min="1.2" max="2.8" step="0.05" value="1.95">
+            <span id="sizeValue">1.95x</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="statusbar">
+    <span id="statusText">Loading Peedy...</span>
+    <span>Ready</span>
+  </div>
+</div>
+
+<script>
+  const AGENT_PATH = "./agents/";
+  let previewAgent = null;
+  let currentAnimation = null;
+  let voiceEnabled = true;
+  let peedyScale = 1.95;
+  let stateTimer = null;
+  let bubbleTimer = null;
+  let isMinimized = false;
+  let isMaximized = true;
+  const menuDefs = {
+    file: [
+      { label: "Random animation", action: "file-random" },
+      { label: "Clear chat", action: "file-clear-chat" },
+      { label: "-", action: "-" },
+      { label: "Reset states", action: "file-reset" }
+    ],
+    edit: [
+      { label: "Toggle voice", action: "edit-voice" },
+      { label: "Bigger Peedy", action: "edit-bigger" },
+      { label: "Smaller Peedy", action: "edit-smaller" }
+    ],
+    help: [
+      { label: "Show commands", action: "help-commands" },
+      { label: "About Peedy", action: "help-about" }
+    ]
+  };
+  const quickReplies = [
+    { cmd: "hello", keys: ["hello", "hi"], text: "Hello! Great to see you!", anim: "Announce" },
+    { cmd: "how are you", keys: ["how are you"], text: "I am doing great and ready to help!", anim: "Pleased" },
+    { cmd: "help", keys: ["help"], text: "I can answer preset questions and play classic animations.", anim: "Explain" },
+    { cmd: "show animation", keys: ["show animation"], text: "Sure! Pick any animation from the list on the left.", anim: "GetAttention" },
+    { cmd: "thanks", keys: ["thanks", "thank you"], text: "You're welcome! Anytime.", anim: "Congratulate" },
+    { cmd: "bye", keys: ["bye", "goodbye"], text: "Bye for now! I am always nearby.", anim: "Wave" }
+  ];
+
+  function setStatus(text) {
+    const status = document.getElementById("statusText");
+    if (status) status.textContent = text;
+  }
+
+  function applyPeedyScale() {
+    if (!previewAgent || !previewAgent._el || !previewAgent._el[0]) return;
+    previewAgent._el[0].style.setProperty("transform", "translateX(-50%) scale(" + peedyScale.toFixed(2) + ")", "important");
+    const sizeValue = document.getElementById("sizeValue");
+    if (sizeValue) sizeValue.textContent = peedyScale.toFixed(2) + "x";
+    const slider = document.getElementById("sizeSlider");
+    if (slider) slider.value = peedyScale.toFixed(2);
+  }
+
+  function setState(name, timeoutMs) {
+    const map = {
+      listening: document.getElementById("stateListening"),
+      speaking: document.getElementById("stateSpeaking"),
+      resting: document.getElementById("stateResting")
+    };
+    Object.values(map).forEach((el) => {
+      if (el) el.classList.remove("active");
+    });
+    if (map[name]) map[name].classList.add("active");
+
+    if (stateTimer) {
+      clearTimeout(stateTimer);
+      stateTimer = null;
+    }
+    if (timeoutMs && timeoutMs > 0) {
+      stateTimer = setTimeout(() => setState("resting"), timeoutMs);
+    }
+  }
+
+  function appendChat(role, text) {
+    const chatLog = document.getElementById("chatLog");
+    if (!chatLog) return;
+    const item = document.createElement("div");
+    item.className = "chat-msg " + role;
+    item.textContent = (role === "user" ? "You: " : "Peedy: ") + text;
+    chatLog.appendChild(item);
+    chatLog.scrollTop = chatLog.scrollHeight;
+  }
+
+  function showAgentBubble(text, holdMs) {
+    const bubble = document.getElementById("agentBubble");
+    if (!bubble) return;
+    bubble.textContent = text || "";
+    bubble.classList.add("visible");
+    if (bubbleTimer) clearTimeout(bubbleTimer);
+    bubbleTimer = setTimeout(() => {
+      bubble.classList.remove("visible");
+    }, holdMs || 3200);
+  }
+
+  function hideAgentBubble() {
+    const bubble = document.getElementById("agentBubble");
+    if (bubble) bubble.classList.remove("visible");
+  }
+
+  function normalizeCommand(text) {
+    return text.trim().toLowerCase().replace(/\s+/g, " ");
+  }
+
+  function renderAllowedCommands() {
+    const list = document.getElementById("chatCmdList");
+    if (!list) return;
+    list.innerHTML = "";
+    quickReplies.forEach((entry) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "chat-cmd-btn";
+      b.textContent = entry.cmd;
+      b.addEventListener("click", function () {
+        const input = document.getElementById("chatInput");
+        if (!input) return;
+        input.value = entry.cmd;
+        sendChat();
+      });
+      list.appendChild(b);
+    });
+  }
+
+  function setActiveTab(tabName) {
+    document.querySelectorAll(".tab").forEach((t) => {
+      t.classList.toggle("active", t.dataset.tab === tabName);
+    });
+    document.querySelectorAll(".tab-pane").forEach((p) => {
+      p.classList.toggle("active", p.id === "tab-" + tabName);
+    });
+  }
+
+  function openMenu(name, btn) {
+    const popup = document.getElementById("menuPopup");
+    if (!popup) return;
+    const items = menuDefs[name] || [];
+    popup.innerHTML = "";
+    items.forEach((it) => {
+      if (it.action === "-") {
+        const sep = document.createElement("div");
+        sep.className = "menu-sep";
+        popup.appendChild(sep);
+        return;
+      }
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "menu-item";
+      b.textContent = it.label;
+      b.dataset.action = it.action;
+      popup.appendChild(b);
+    });
+    const menubarRect = document.querySelector(".xp-menubar").getBoundingClientRect();
+    const btnRect = btn.getBoundingClientRect();
+    popup.style.left = (btnRect.left - menubarRect.left) + "px";
+    popup.classList.add("visible");
+    document.querySelectorAll(".menu-btn").forEach((m) => m.classList.toggle("active", m === btn));
+  }
+
+  function closeMenu() {
+    const popup = document.getElementById("menuPopup");
+    if (popup) popup.classList.remove("visible");
+    document.querySelectorAll(".menu-btn").forEach((m) => m.classList.remove("active"));
+  }
+
+  function doRandomAnimation() {
+    if (!previewAgent) return;
+    const list = previewAgent.animations();
+    if (!list.length) return;
+    doAnim(list[Math.floor(Math.random() * list.length)]);
+  }
+
+  function handleMenuAction(action) {
+    switch (action) {
+      case "file-random":
+        doRandomAnimation();
+        break;
+      case "file-clear-chat":
+        document.getElementById("chatLog").innerHTML = "";
+        appendChat("peedy", "Chat cleared.");
+        break;
+      case "file-reset":
+        setState("resting");
+        hideAgentBubble();
+        setStatus("Ready");
+        break;
+      case "edit-voice":
+        voiceEnabled = !voiceEnabled;
+        const vt = document.getElementById("voiceToggle");
+        const vtm = document.getElementById("voiceToggleManual");
+        if (vt) vt.checked = voiceEnabled;
+        if (vtm) vtm.checked = voiceEnabled;
+        setStatus(voiceEnabled ? "Voice enabled (Web TTS)" : "Voice disabled");
+        break;
+      case "edit-bigger":
+        peedyScale = Math.min(2.8, peedyScale + 0.1);
+        applyPeedyScale();
+        break;
+      case "edit-smaller":
+        peedyScale = Math.max(1.2, peedyScale - 0.1);
+        applyPeedyScale();
+        break;
+      case "help-commands":
+        showAgentBubble("Try: hello, how are you, help, show animation, thanks, bye", 4000);
+        break;
+      case "help-about":
+        showAgentBubble("Peedy is your friendly classic assistant.", 3000);
+        break;
+      default:
+        break;
+    }
+  }
+
+  async function copyTextValue(value, okMessage) {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      setStatus(okMessage || "Copied");
+    } catch (e) {
+      const ta = document.createElement("textarea");
+      ta.value = value;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try {
+        document.execCommand("copy");
+        setStatus(okMessage || "Copied");
+      } catch (err) {
+        setStatus("Copy failed");
+      }
+      ta.remove();
+    }
+  }
+
+  function speakOut(text) {
+    if (!voiceEnabled || !text) return;
+    if (!("speechSynthesis" in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = "en-US";
+      utter.rate = 1.0;
+      utter.pitch = 1.0;
+      window.speechSynthesis.speak(utter);
+    } catch (e) {}
+  }
+
+  function playOgReplySound() {
+    try {
+      if (previewAgent && previewAgent._animator && typeof previewAgent._animator._playSound === "function") {
+        previewAgent._animator._playSound("1");
+      }
+    } catch (e) {}
+  }
+
+  function getReply(text) {
+    const normalized = normalizeCommand(text);
+    const found = quickReplies.find((r) => r.keys.some((k) => normalizeCommand(k) === normalized));
+    if (found) return found;
+    return {
+      text: "I only support preset commands. Use the buttons above: hello, how are you, help, show animation, thanks, bye.",
+      anim: "DontRecognize"
+    };
+  }
+
+  function mountPreviewAgent(agent) {
+    const previewContainer = document.getElementById("previewPeedyContainer");
+    if (!previewContainer || !agent || !agent._el || !agent._el[0]) return false;
+
+    const el = agent._el[0];
+    if (el.parentElement !== previewContainer) {
+      el.remove();
+      previewContainer.appendChild(el);
+    }
+
+    agent.show();
+    applyPeedyScale();
+    return true;
+  }
+
+  function doAnim(name) {
+    if (!previewAgent) return;
+
+    const anims = previewAgent.animations();
+    const exact = anims.includes(name) ? name : anims.find((a) => a.toLowerCase() === name.toLowerCase());
+    if (!exact) return;
+
+    currentAnimation = exact;
+    setState("speaking", 2200);
+    setStatus("Playing: " + exact);
+
+    try {
+      previewAgent.stop();
+    } catch (e) {}
+
+    setTimeout(() => {
+      try {
+        previewAgent.play(exact);
+      } catch (e) {
+        console.error("play animation error:", e);
+      }
+    }, 40);
+
+    setTimeout(() => {
+      if (currentAnimation === exact) currentAnimation = null;
+    }, 2500);
+  }
+
+  function sendChat() {
+    const input = document.getElementById("chatInput");
+    if (!input || !previewAgent) return;
+    const text = input.value.trim();
+    if (!text) return;
+    setState("listening", 800);
+    input.value = "";
+    appendChat("user", text);
+    const reply = getReply(text);
+    setTimeout(() => {
+      appendChat("peedy", reply.text);
+      setState("speaking", 2600);
+      showAgentBubble(reply.text, 3400);
+      try {
+        // Keep classic behavior: balloon text + built-in animation sounds only.
+        previewAgent.speak(reply.text);
+      } catch (e) {}
+      speakOut(reply.text);
+      playOgReplySound();
+      doAnim(reply.anim);
+    }, 240);
+  }
+
+  function buildAnimationTree(agent) {
+    const tree = document.getElementById("animationTree");
+    const animCount = document.getElementById("animCount");
+    const animations = agent.animations().slice().sort();
+
+    tree.innerHTML = "";
+    animations.forEach((name) => {
+      const item = document.createElement("div");
+      item.className = "tree-item";
+      item.textContent = name;
+      item.onclick = function () {
+        document.querySelectorAll("#animationTree .tree-item").forEach((n) => n.classList.remove("selected"));
+        this.classList.add("selected");
+        doAnim(name);
+      };
+      tree.appendChild(item);
+    });
+
+    animCount.value = animations.length + " animations";
+    setStatus(animations.length + " animations loaded");
+  }
+
+  function startIdleLoop() {
+    setInterval(() => {
+      if (!previewAgent || currentAnimation) return;
+      setState("resting");
+      const candidates = ["RestPose", "Idle1_1", "Idle1_2", "Idle1_3"];
+      const available = candidates.filter((a) => previewAgent.animations().includes(a));
+      if (!available.length) return;
+      const pick = available[Math.floor(Math.random() * available.length)];
+      try {
+        previewAgent.play(pick);
+      } catch (e) {}
+    }, 9000);
+  }
+
+  function loadPeedy() {
+    if (!window.clippy) {
+      setTimeout(loadPeedy, 50);
+      return;
+    }
+
+    window.clippy.load(
+      "Peedy",
+      function (agent) {
+        previewAgent = agent;
+
+        let mounted = mountPreviewAgent(agent);
+        if (!mounted) {
+          setTimeout(() => mountPreviewAgent(agent), 120);
+          setTimeout(() => mountPreviewAgent(agent), 280);
+        }
+
+        buildAnimationTree(agent);
+        startIdleLoop();
+        renderAllowedCommands();
+        appendChat("peedy", "Hello! Use one of the allowed commands above.");
+        setState("resting");
+
+        try {
+          agent.play("RestPose");
+        } catch (e) {
+          console.error("RestPose error:", e);
+        }
+        applyPeedyScale();
+      },
+      function (err) {
+        console.error("Failed to load Peedy:", err);
+        setStatus("Load error. Check console (F12)");
+      },
+      AGENT_PATH
+    );
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", loadPeedy);
+  } else {
+    loadPeedy();
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const btn = document.getElementById("chatSendBtn");
+    const input = document.getElementById("chatInput");
+    renderAllowedCommands();
+
+    const cmdList = document.getElementById("chatCmdList");
+    if (cmdList) {
+      const toggleWrap = document.createElement("div");
+      toggleWrap.className = "voice-toggle";
+      toggleWrap.innerHTML = '<label for="voiceToggle">Voice</label><input id="voiceToggle" type="checkbox" checked />';
+      cmdList.parentElement.appendChild(toggleWrap);
+      const t = document.getElementById("voiceToggle");
+      if (t) {
+        t.addEventListener("change", function () {
+          voiceEnabled = !!t.checked;
+          setStatus(voiceEnabled ? "Voice enabled (Web TTS)" : "Voice disabled");
+        });
+      }
+    }
+
+    if (btn) btn.addEventListener("click", sendChat);
+    if (input) {
+      input.addEventListener("focus", function () {
+        setState("listening", 1200);
+      });
+      input.addEventListener("keydown", function (e) {
+        setState("listening", 1000);
+        if (e.key === "Enter") sendChat();
+      });
+    }
+
+    document.querySelectorAll(".tab").forEach((tab) => {
+      tab.addEventListener("click", function () {
+        setActiveTab(tab.dataset.tab);
+      });
+    });
+
+    document.querySelectorAll(".menu-btn").forEach((menuBtn) => {
+      menuBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        const popup = document.getElementById("menuPopup");
+        const isSameOpen = popup.classList.contains("visible") && menuBtn.classList.contains("active");
+        if (isSameOpen) closeMenu();
+        else openMenu(menuBtn.dataset.menu, menuBtn);
+      });
+    });
+
+    const popup = document.getElementById("menuPopup");
+    if (popup) {
+      popup.addEventListener("click", function (e) {
+        const target = e.target.closest(".menu-item");
+        if (!target) return;
+        handleMenuAction(target.dataset.action);
+        closeMenu();
+      });
+    }
+
+    document.addEventListener("click", function () {
+      closeMenu();
+    });
+
+    const btnMinimize = document.getElementById("btnMinimize");
+    const btnMaximize = document.getElementById("btnMaximize");
+    const btnClose = document.getElementById("btnClose");
+    const content = document.querySelector(".content");
+    const statusbar = document.querySelector(".statusbar");
+    const menubar = document.querySelector(".xp-menubar");
+    const windowEl = document.querySelector(".xp-window");
+
+    if (btnMinimize) {
+      btnMinimize.addEventListener("click", function () {
+        isMinimized = !isMinimized;
+        if (content) content.style.display = isMinimized ? "none" : "flex";
+        if (statusbar) statusbar.style.display = isMinimized ? "none" : "flex";
+        if (menubar) menubar.style.display = isMinimized ? "none" : "flex";
+        setStatus(isMinimized ? "Minimized" : "Ready");
+      });
+    }
+
+    if (btnMaximize) {
+      btnMaximize.addEventListener("click", function () {
+        isMaximized = !isMaximized;
+        if (!windowEl) return;
+        if (isMaximized) {
+          windowEl.style.width = "100vw";
+          windowEl.style.height = "100vh";
+        } else {
+          windowEl.style.width = "92vw";
+          windowEl.style.height = "90vh";
+          windowEl.style.margin = "2vh auto";
+        }
+      });
+    }
+
+    if (btnClose) {
+      btnClose.addEventListener("click", function () {
+        if (windowEl) windowEl.style.display = "none";
+        const reopen = document.createElement("button");
+        reopen.textContent = "Reopen Peedy";
+        reopen.className = "action-btn";
+        reopen.style.position = "fixed";
+        reopen.style.right = "12px";
+        reopen.style.bottom = "12px";
+        reopen.style.zIndex = "999";
+        reopen.id = "reopenBtn";
+        reopen.onclick = function () {
+          if (windowEl) windowEl.style.display = "flex";
+          reopen.remove();
+          setStatus("Ready");
+        };
+        const old = document.getElementById("reopenBtn");
+        if (old) old.remove();
+        document.body.appendChild(reopen);
+      });
+    }
+
+    const vtManual = document.getElementById("voiceToggleManual");
+    if (vtManual) {
+      vtManual.addEventListener("change", function () {
+        voiceEnabled = !!vtManual.checked;
+        const vt = document.getElementById("voiceToggle");
+        if (vt) vt.checked = voiceEnabled;
+        setStatus(voiceEnabled ? "Voice enabled (Web TTS)" : "Voice disabled");
+      });
+    }
+
+    const sizeSlider = document.getElementById("sizeSlider");
+    if (sizeSlider) {
+      sizeSlider.addEventListener("input", function () {
+        peedyScale = parseFloat(sizeSlider.value) || 1.95;
+        applyPeedyScale();
+      });
+    }
+
+    const btnBalloonHello = document.getElementById("btnBalloonHello");
+    const btnBalloonTip = document.getElementById("btnBalloonTip");
+    const btnBalloonHide = document.getElementById("btnBalloonHide");
+    const btnRandomAnim = document.getElementById("btnRandomAnim");
+    const btnGreet = document.getElementById("btnGreet");
+    const btnThink = document.getElementById("btnThink");
+    const btnIdle = document.getElementById("btnIdle");
+    const btnOpenX = document.getElementById("btnOpenX");
+    const btnCopyX = document.getElementById("btnCopyX");
+    const btnCopyCA = document.getElementById("btnCopyCA");
+    const xUrlField = document.getElementById("xUrlField");
+    const caField = document.getElementById("caField");
+
+    if (btnBalloonHello) btnBalloonHello.addEventListener("click", () => showAgentBubble("Hello! I am Peedy.", 3000));
+    if (btnBalloonTip) btnBalloonTip.addEventListener("click", () => showAgentBubble("Tip: use commands or click animations on the left.", 3800));
+    if (btnBalloonHide) btnBalloonHide.addEventListener("click", hideAgentBubble);
+    if (btnRandomAnim) btnRandomAnim.addEventListener("click", doRandomAnimation);
+    if (btnGreet) btnGreet.addEventListener("click", () => doAnim("Greet"));
+    if (btnThink) btnThink.addEventListener("click", () => doAnim("Think"));
+    if (btnIdle) btnIdle.addEventListener("click", () => doAnim("RestPose"));
+    if (btnOpenX) {
+      btnOpenX.addEventListener("click", () => {
+        const url = xUrlField ? xUrlField.value : "";
+        if (!url) return;
+        window.open(url, "_blank", "noopener,noreferrer");
+        setStatus("Opened X link");
+      });
+    }
+    if (btnCopyX) {
+      btnCopyX.addEventListener("click", () => {
+        copyTextValue(xUrlField ? xUrlField.value : "", "X link copied");
+      });
+    }
+    if (btnCopyCA) {
+      btnCopyCA.addEventListener("click", () => {
+        copyTextValue(caField ? caField.value : "", "CA copied");
+      });
+    }
+  });
+</script>
+</body>
+</html>
+
