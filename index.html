@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Peedy - Character Editor</title>
 
+<link rel="preload" href="./agents/Peedy/map.png" as="image">
+<link rel="preload" href="./agents/Peedy/agent.js" as="script">
+<link rel="preload" href="./agents/Peedy/sounds-mp3.js" as="script">
 <script src="./node_modules/jquery/dist/jquery.min.js"></script>
 <script src="./node_modules/clippyjs/dist/clippy.js"></script>
 
@@ -1079,6 +1082,12 @@
     if (!window.clippy) {
       setTimeout(loadPeedy, 50);
       return;
+    }
+
+    // Fast startup mode: don't block initial render on large sound packs.
+    // Peedy appears immediately; voice still works via browser speech synthesis.
+    if (typeof window.clippy.soundsReady === "function") {
+      window.clippy.soundsReady("Peedy", {});
     }
 
     window.clippy.load(
